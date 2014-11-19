@@ -1,0 +1,334 @@
+c      ============================================
+c      various to access data from fortran common block to C++
+c
+
+c----------------------------------------------
+c      field access functions
+c
+       
+
+       function f2cgetslippagefield(values,irec,dims)
+       include 'genesis.def'
+       include 'field.cmn'
+       include 'sim.cmn'
+       include 'input.cmn'
+       include 'work.cmn'
+       integer f2cgetslippagefield,dims,i,irec
+       real*8 values(*),scl
+
+       f2cgetslippagefield=1
+       scl=xkw0*xkw0 
+       call pulltimerec(crwork3,ncar,irec)
+       do i=1,ncar*ncar*dims
+         values(2*i-1)=dreal(crwork3(i))*scl
+         values(2*i)  =dimag(crwork3(i))*scl
+       enddo
+       return
+       end
+
+
+       function f2cgetfullfield(values,dims,idx)
+       include 'genesis.def'
+       include 'field.cmn'
+       include 'sim.cmn'
+       include 'input.cmn'
+       integer f2cgetfullfield,dims,i,offset,idx
+       real*8 values(*),scl
+
+       offset=ncar*ncar*(idx-1)
+       f2cgetfullfield=1 
+       scl=xkw0*xkw0
+       do i=1,ncar*ncar*dims
+         values(2*i-1)=dreal(crfield(i+offset))*scl
+         values(2*i)  =dimag(crfield(i+offset))*scl
+       enddo
+       return
+       end
+
+       function f2cputfullfield(values,dims,idx)
+       include 'genesis.def'
+       include 'field.cmn'
+       include 'sim.cmn'
+       include 'input.cmn'
+       integer f2cputfullfield,dims,i,offset,idx
+       real*8 values(*),scl
+
+       offset=ncar*ncar*(idx-1)
+       f2cputfullfield=1 
+       scl=1./xkw0/xkw0
+       do i=1,ncar*ncar*dims
+         crfield(offset+i)=dcmplx(values(2*i-1),values(2*i))*scl
+     c   
+       enddo
+       return
+       end
+
+c-------------------------------
+c      beam access functions
+c
+
+c----------------------------------
+c
+c      note that the transverse positions are not scaled with xkw0. This is done in readpart!
+
+       function f2cputbeam(values,dims)
+       include 'genesis.def'
+       include 'particle.cmn'
+       include 'sim.cmn'
+       include 'input.cmn'
+       integer f2cputbeam,dims,i
+       real*8 values(*)
+c       dimension values(npmax)
+       f2cputbeam=1 
+       if (dims.eq.1) then  
+          do i=1,npart
+             gamma(i)=values(i)
+          enddo
+          return
+       endif
+       if (dims.eq.2) then  
+          do i=1,npart
+             theta(i)=values(i)
+          enddo
+          return
+       endif
+       if (dims.eq.3) then  
+          do i=1,npart
+             xpart(i)=values(i)*xkw0
+          enddo
+          return
+       endif
+       if (dims.eq.4) then  
+          do i=1,npart
+             ypart(i)=values(i)*xkw0
+          enddo
+          return
+       endif
+       if (dims.eq.5) then  
+          do i=1,npart
+             px(i)=values(i)
+          enddo
+          return
+       endif
+       if (dims.eq.6) then  
+          do i=1,npart
+             py(i)=values(i)
+          enddo
+          return
+       endif
+       return
+       end
+
+c-------------------------------------------------------
+
+       function f2cgetbeam(values)
+       include 'genesis.def'
+       include 'particle.cmn'
+       include 'sim.cmn'
+       include 'input.cmn'
+       integer f2cgetbeam,dims,i
+       real*8 values(*)
+c       dimension values(npmax)
+       f2cgetbeam=1 
+       do i=1,npart
+          values(i)=gamma(i)
+       enddo
+       do i=1,npart
+          values(i+npart)=theta(i)
+       enddo
+       do i=1,npart
+          values(i+2*npart)=xpart(i)/xkw0
+       enddo
+       do i=1,npart
+          values(i+3*npart)=ypart(i)/xkw0
+       enddo
+       do i=1,npart
+          values(i+4*npart)=px(i)
+       enddo
+       do i=1,npart
+          values(i+5*npart)=py(i)
+       enddo
+       
+       return
+       end
+
+
+c--------------------------------------------
+       function f2cgetdiagnorecord(ir,values)
+       include 'genesis.def'
+       include 'diagnostic.cmn'
+       integer f2cgetdiagnorecord
+       real*8 values
+       integer ir,i
+       dimension values(nhmax*10+10)
+       f2cgetdiagnorecord=0
+       values(1)=pgainhist(1,ir)
+       values(2)=logp(ir)
+       values(3)=pmidhist(1,ir)
+       values(4)=phimid(1,ir)  
+       values(5)=whalf(ir)
+       values(6)=diver(ir)
+       values(7)=gamhist(ir)
+       values(8)=pmodhist(1,ir)
+       values(9)=xrms(ir)
+       values(10)=yrms(ir)
+       values(11)=error(ir)
+       values(12)=xpos(ir)
+       values(13)=ypos(ir)
+       values(14)=dgamhist(ir)
+       values(15)=ffield(1,ir)
+       values(16)=bunphase(1,ir)
+       do i=2,nhmax
+         values((i-2)*5+17)=pmodhist(i,ir)
+         values((i-2)*5+18)=pgainhist(i,ir)
+         values((i-2)*5+19)=bunphase(i,ir)
+         values((i-2)*5+20)=pmidhist(i,ir)
+         values((i-2)*5+21)=phimid(i,ir)
+       enddo
+       return
+       end
+c-------------------------------------------
+       function f2cgetmaglattice(awc,qfc)
+       include 'genesis.def'
+       include 'magnet.cmn'
+       include 'input.cmn'
+       integer i
+       real*8 f2cgetmaglattice,awc,qfc
+       dimension awc(nzmax),qfc(nzmax)
+       f2cgetmaglattice=delz*xlamd
+       do i=0,nstepz
+         awc(i+1)=awz(i)
+         qfc(i+1)=qfld(i)/586.
+       enddo
+       return 
+       end
+
+       function f2cgetscanvalue()
+       include 'genesis.def'
+       include 'sim.cmn'
+       real*8 f2cgetscanvalue
+       f2cgetscanvalue=svalout
+       return
+       end
+
+       function f2cgetcurrent()
+       include 'genesis.def'
+       include 'particle.cmn'
+       real*8 f2cgetcurrent
+       f2cgetcurrent=xcuren
+       return
+       end
+
+       function f2cputcurrent(cur)
+       include 'genesis.def'
+       include 'particle.cmn'
+       integer f2cputcurrent
+       real*8 cur
+       f2cputcurrent=0
+       xcuren=cur
+       return
+       end
+
+c-----------------------
+       function f2cputnpart0(n)
+       include 'genesis.def'
+       include 'sim.cmn'
+       include 'input.cmn'
+       integer f2cputnpart0,n
+       f2cputnpart0=0
+       npart0=n
+       npart=n
+       return
+       end
+     
+       function f2cgetdxy()
+       include 'genesis.def'
+       include 'field.cmn'
+       real*8 f2cgetdxy
+       f2cgetdxy=dxy
+       return 
+       end
+
+
+       function f2cgetxkw0()
+       include 'genesis.def'
+       include 'sim.cmn'
+       real*8 f2cgetxkw0
+       f2cgetxkw0=xkw0
+       return 
+       end
+
+
+       function f2cgetnslp()
+       include 'genesis.def'
+       include 'time.cmn'   
+       integer f2cgetnslp
+       f2cgetnslp=nslp
+       return 
+       end
+
+       function f2cgetnsep()
+       include 'genesis.def'
+       include 'time.cmn'   
+       integer f2cgetnsep
+       f2cgetnsep=nsep
+       return 
+       end
+
+
+
+       function f2cgetnstepz()
+       include 'genesis.def'
+       include 'magnet.cmn'   
+       integer f2cgetnstepz
+       f2cgetnstepz=nstepz
+       return 
+       end
+
+       function f2cgetoutputfilename(string)
+       include 'genesis.def'
+       include 'input.cmn'
+       character string*(*)
+       integer f2cgetoutputfilename,i
+       f2cgetoutputfilename=strlen(outputfile)
+       do i=1,strlen(outputfile)
+         string(i:i)=outputfile(i:i)
+       enddo
+       return
+       end
+
+       function f2cgetpartfilename(string)
+       include 'genesis.def'
+       include 'input.cmn'
+       character string*(*)
+       integer f2cgetpartfilename,i
+       f2cgetpartfilename=strlen(partfile)
+       do i=1,strlen(partfile)
+         string(i:i)=partfile(i:i)
+       enddo
+       return
+       end
+
+       function f2cgetfieldfilename(string)
+       include 'genesis.def'
+       include 'input.cmn'
+       character string*(*)
+       integer f2cgetfieldfilename,i
+       f2cgetfieldfilename=strlen(fieldfile)
+       do i=1,strlen(fieldfile)
+         string(i:i)=fieldfile(i:i)
+       enddo
+       return
+       end
+
+       function f2cgetfieldharmfilename(string)
+       include 'genesis.def'
+       include 'input.cmn'
+       character string*(*)
+       integer f2cgetfieldharmfilename,i
+       f2cgetfieldharmfilename=strlen(fieldharmfile)
+       do i=1,strlen(fieldharmfile)
+         string(i:i)=fieldharmfile(i:i)
+       enddo
+       return
+       end
