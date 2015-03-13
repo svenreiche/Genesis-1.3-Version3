@@ -15,13 +15,12 @@ c
    
 c
       real*8  pradin
-      integer ix,irec,islice,ierr,n,loadrad
+      integer ix,irec,islice,ierr,n,loadrad,idx
 c
       loadrad=0
 c
 c     initialize field
 c     ---------------------------
-      
       do ix=1,ncar*ncar*nhloop
         crfield(ix)=dcmplx(0.,0.)
       enddo
@@ -36,12 +35,16 @@ c     load initial field
 c     ------------------------------------------------------------------
 c
 c
-        call gauss_hermite(crfield,prad0,zrayl,
+      idx=2
+      if (iallharm.ne.0) then
+         idx=nharm
+      endif
+      call gauss_hermite(crfield,prad0,zrayl,
      +  zwaist,xks,radphase,1) !load gauss-hermite mode for all harmonics
-        if ((nharm.gt.1).and.(pradh0.gt.0)) then
+      if ((nharm.gt.1).and.(pradh0.gt.0)) then
           call gauss_hermite(crfield,pradh0,zrayl*dble(nharm),
-     +    zwaist,xks*dble(nharm),radphase,nharm) !load gauss-hermite mode for higher harmonics
-        endif
+     +    zwaist,xks*dble(nharm),radphase,idx) !load gauss-hermite mode for higher harmonics
+      endif
 
       return
       end       !of loadrad
