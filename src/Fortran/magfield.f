@@ -21,7 +21,7 @@ c
       include  'mpi.cmn'
 c
       integer nfl,ndl,ndrl,nfodol,n1st,nlat,i1,i2,i,iskip
-      integer imz(11),nwigz,iserr,nsl,isup,itmp,nsecl
+      integer imz(12),nwigz,iserr,nsl,isup,itmp,nsecl
       real*8 norm,rn,rnx,rny,rold,xkw0,atmp
       real*8 corx(nzmax),cory(nzmax)
 c
@@ -35,7 +35,7 @@ c=======================================================================
 c
 c     clear arrays
 c
-      do i=1,11
+      do i=1,12
          imz(i)=0
       enddo 
       do i=1,nzmax
@@ -52,7 +52,8 @@ c
          awdx(i)=0.
          awdy(i)=0.
          awslip(i)=0.
-         awphase(i)=0;
+         awphase(i)=0.
+         atgu(i)=0.
       enddo   
 c
 c     read external file
@@ -394,7 +395,7 @@ c
 c
       xt=x-awdx(i)   ! include offset
       yt=y-awdy(i)   ! in x and y
-      faw2 = awz(i)*awz(i)*(1.d0+xkx*xt*xt+xky*yt*yt)
+      faw2 = awz(i)*awz(i)*(1.d0+atgu(i)*xt+xkx*xt*xt+xky*yt*yt)
 c
       return
       end     !faw2
@@ -411,7 +412,7 @@ c
 c
       real*8 corx(*),cory(*),rold,rcur,xkw0
       integer i,ic,k,nmout,nr
-      character*3  cid(11)
+      character*3  cid(12)
 c
       if(magin.eq.0) magversion = 1.0 ! write in new format unless spec. otherwise
       cid(1)='AW '
@@ -425,6 +426,7 @@ c
       cid(9)='CY '
       cid(10)='AX'
       cid(11)='AY'
+      cid(12)='TG'
 c
       nmout=opentextfile(magoutfile,'unknown',8)
       if (nmout.lt.0) return
@@ -541,7 +543,7 @@ c
       character*255 line
       real*8 r1,r2,corx(*),cory(*)
       real*8 r3,values(4),val
-      integer i,nr,imz(11),imzb(11),idum,isup
+      integer i,nr,imz(12),imzb(12),idum,isup
       integer loop,loopcnt,j,k,ntemp,nmin
       integer nloop,ninfo,nr2
       integer int_version,ncol,ierr,nlen,idx
@@ -577,6 +579,7 @@ c
       cmagtype(9)='solenoid field'
       cmagtype(10)='undulator offset in x'
       cmagtype(11)='undulator offset in y'
+      cmagtype(12)='transverse gradient in x'
 
       unitlength = 0.0  ! unit length has to be checked for new version
 c
@@ -638,7 +641,7 @@ c
             endif
             if (loopcnt.gt.1) then
                loop=1
-               do k=1,11
+               do k=1,12
                   imzb(k)=imz(k)
                enddo 
             endif  
@@ -650,7 +653,7 @@ c
          nloop=index(line,'ENDLOOP')
          if((nloop.eq.idx).and.(loop.eq.1)) then        ! a loop is ended
             do j=2,loopcnt   ! copy filed loopcnt-1 times
-              do k=1,11 
+              do k=1,12 
                  ntemp=imz(k)-imzb(k)
                  if ((imz(1)+ntemp).gt.nzmax) then
                     idum=printerr(errarrbnd,cmagtype(k))
@@ -666,6 +669,7 @@ c
                      if (k.eq.9) solz(imz(9)+i)=solz(imzb(9)+i)
                      if (k.eq.10) awdx(imz(10)+i)=awdx(imzb(10)+i)
                      if (k.eq.11) awdy(imz(11)+i)=awdy(imzb(11)+i)
+                     if (k.eq.12) atgu(imz(12)+i)=atgu(imzb(12)+i)
                    enddo
                    imz(k) = imz(k)+ntemp
                    imzb(k)=imzb(k)+ntemp
@@ -693,6 +697,7 @@ cbart      if (cin(1:2).eq.'QD') k=5 !quadrupole offset in x
       if (cin(1:2).eq.'SL') k=9 !solenoid strength
       if (cin(1:2).eq.'AX') k=10 !undulator offset in x
       if (cin(1:2).eq.'AY') k=11 !undulator offset in y
+      if (cin(1:2).eq.'TG') k=12 !transverse gradient
       if (k.lt.0) then
          ierr=printerr(errconv,cin(1:2))
          goto 1
@@ -759,6 +764,7 @@ c
             if (k.eq.9) solz(imz(9)+i)=r1
             if (k.eq.10) awdx(imz(10)+i)=r1
             if (k.eq.11) awdy(imz(11)+i)=r1
+            if (k.eq.12) atgu(imz(12)+i)=r1
          enddo
          imz(k)=imz(k)+nr
       endif
