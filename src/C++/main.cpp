@@ -250,7 +250,7 @@ int main (int argc, char *argv[]) {
           
 	  //-----------------------------
           // start of integration
-          
+	  //          if (rank==0){ cout << nslp << " " << nsep << endl; }
           for (int islp=1; islp <= nslp; islp++){
             int lstepz=nsep;
             if (islp == nslp){ lstepz=nstepz-(islp-1)*nsep;}  // correct length at undulator end

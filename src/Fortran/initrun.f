@@ -60,6 +60,7 @@ c
       do i=1,nstepz
         rslp=rslp+awslip(i)
       enddo
+      rslp=nstepz         ! bypass the implementation with awslip which has errors
       nslp=int(rslp/zsep)                         !total slippage steps
       if (mod(nstepz,nsep).ne.0) nslp=nslp+1   !if not added the effective undulator
 c      write(*,*) 'nstepz: ',nstepz, ' nslp: ', nslp
